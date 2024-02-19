@@ -138,5 +138,35 @@ body {
 
   .button-error-grey {
     background-color: #e0e0e0;
+    color: #a0a0a0;
     
+  }
+
+  .edit-textarea {
+    width: 100%; 
+    font-size: 16px;
+    font-family: Helvetica;
+    border: 2px solid #bcec30; 
+    border-radius: 8px; 
+    padding: 11px 22px; 
+    background: #282828;
+    color: #ffffff; 
+    margin-bottom: 12px; 
+  }
+  
+  .edit-button, .save-button {
+    font-size: 16px;
+    padding: 8px 16px;
+    background-color: #bcec30;
+    border: none;
+    border-radius: 18px;
+    margin-left: 10px; 
+  }
+  
+  .edit-button:hover, .save-button:hover {
+    opacity: 0.9;
+  }
+  
+  .comment-text, .edit-textarea {
+    word-wrap: break-word; 
   }

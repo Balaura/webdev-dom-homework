@@ -11,40 +11,7 @@
 <body>
   <div class="container">
     <ul class="comments" id="list-comment">
-      <li class="comment">
-        <div class="comment-header">
-          <div>Глеб Фокин</div>
-          <div>12.02.22 12:18</div>
-        </div>
-        <div class="comment-body">
-          <div class="comment-text">
-            Это будет первый комментарий на этой странице
-          </div>
-        </div>
-        <div class="comment-footer">
-          <div class="likes">
-            <span class="likes-counter">3</span>
-            <button class="like-button"></button>
-          </div>
-        </div>
-      </li>
-      <li class="comment">
-        <div class="comment-header">
-          <div>Варвара Н.</div>
-          <div>13.02.22 19:22</div>
-        </div>
-        <div class="comment-body">
-          <div class="comment-text">
-            Мне нравится как оформлена эта страница! ❤
-          </div>
-        </div>
-        <div class="comment-footer">
-          <div class="likes">
-            <span class="likes-counter">75</span>
-            <button class="like-button -active-like"></button>
-          </div>
-        </div>
-      </li>
+      <!-- Список рендерится из JS -->
     </ul>
     <div class="add-form">
       <input type="text" class="add-form-name" placeholder="Введите ваше имя" id="name-input" />
@@ -78,6 +45,93 @@
     minute: 'numeric',
   };
 
+  const users = [
+    {
+      name: 'Глеб Фокин',
+      date: '12.02.22 12:18',
+      comment: 'Это будет первый комментарий на этой странице',
+      likes: 3,
+      isLiked: false,
+
+    }, {
+      name: 'Варвара Н.',
+      date: '13.02.22 19:22',
+      comment: 'Это будет второй комментарий на этой странице',
+      likes: 75,
+      isLiked: false,
+    }
+  ];
+  const renderUsers = () => {
+    const usersHtml = users.map((user, index) => {
+      let activeLike = "";
+      let commentContent;
+      let editButton;
+      if (user.isLiked) {
+        activeLike = "-active-like";
+      }
+      if (user.isEdit) {
+        // Если комментарий в режиме редактирования
+        commentContent = `<textarea class="edit-textarea" data-index="${index}">${user.comment}</textarea>`;
+        editButton = `<button class="save-button" data-index="${index}">Сохранить</button>`;
+      } else {
+        // Если комментарий в обычном режиме просмотра
+        commentContent = `<div class="comment-text">${user.comment}</div>`;
+        editButton = `<button class="edit-button" data-index="${index}">Редактировать</button>`;
+      }
+      return `
+          <li class="comment">
+            <div class="comment-header">
+              <div>${user.name}</div>
+              <div>${user.date}</div>
+            </div>
+            <div class="comment-body">
+                ${commentContent}
+              </div>
+            </div>
+            <div class="comment-footer">
+              <div class="likes">
+                <span class="likes-counter">${user.likes}</span>
+                <button class="like-button ${activeLike}" data-index="${index}"></button>
+                ${editButton}
+              </div>
+            </div>
+          </li>`;
+    });
+    listCommentElement.innerHTML = usersHtml.join('');
+    addEventListeners();
+  };
+
+  function addEventListeners() {
+    document.querySelectorAll('.like-button').forEach(button => {
+      button.addEventListener('click', function () {
+        const index = parseInt(this.dataset.index, 10);
+        users[index].isLiked = !users[index].isLiked;
+        users[index].likes += users[index].isLiked ? 1 : -1;
+        renderUsers();
+      });
+    });
+
+    document.querySelectorAll('.edit-button').forEach(button => {
+      button.addEventListener('click', function () {
+        const index = parseInt(this.dataset.index, 10);
+        users[index].isEdit = true;
+        renderUsers();
+      });
+    });
+
+    document.querySelectorAll('.save-button').forEach(button => {
+      button.addEventListener('click', function () {
+        const index = parseInt(this.dataset.index, 10);
+        const newText = document.querySelector(`.edit-textarea[data-index="${index}"]`).value;
+        users[index].comment = newText;
+        users[index].isEdit = false;
+        renderUsers();
+      });
+    });
+    updateButtonState();
+  }
+  renderUsers();
+
   function updateButtonState() {
     if (nameInputElement.value !== "" && textInputElement.value !== "") {
       buttonElement.disabled = false;
@@ -91,38 +145,27 @@
   updateButtonState();
   nameInputElement.addEventListener("input", updateButtonState);
   textInputElement.addEventListener("input", updateButtonState);
+  renderUsers();
 
   function addComment() {
     if (nameInputElement.value === "" || textInputElement.value === "") {
       return;
     }
-
     const date = new Date();
     const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
 
-    listCommentElement.innerHTML = oldListCommentElement + `
-        <li class="comment">
-            <div class="comment-header">
-              <div>${nameInputElement.value}</div>
-              <div>${dateTime}</div>
-            </div>
-            <div class="comment-body">
-              <div class="comment-text">
-                ${textInputElement.value}
-              </div>
-            </div>
-            <div class="comment-footer">
-              <div class="likes">
-                <span class="likes-counter">0</span>
-                <button class="like-button"></button>
-              </div>
-            </div>
-          </li>
-      `;
+    users.push({
+      name: nameInputElement.value,
+      comment: textInputElement.value,
+      date: dateTime,
+      likes: 0,
+      isLiked: false,
+    });
+
     nameInputElement.value = "";
     textInputElement.value = "";
-    oldListCommentElement = listCommentElement.innerHTML;
     updateButtonState();
+    renderUsers();
   }
 
   buttonElement.addEventListener("click", addComment);
@@ -136,12 +179,10 @@
   textInputElement.addEventListener("keyup", handleEnterKeyPress);
 
   deleteButtonElement.addEventListener("click", function () {
-    const lastComment = listCommentElement.lastElementChild;
-    if (lastComment) {
-      listCommentElement.removeChild(lastComment);
-      oldListCommentElement = listCommentElement.innerHTML;
+    if (users.length > 0) {
+      users.pop();
+      renderUsers();
     }
-
   });
 
 </script>
