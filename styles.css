@@ -170,3 +170,15 @@ body {
   .comment-text, .edit-textarea {
     word-wrap: break-word; 
   }
+
+  .quote {
+    font-size: 14px;
+    padding: 4px 12px;
+    background-color: #e9f8bb;
+    color: #282828;
+    border: none;
+    border-radius: 5px;
+    margin-left: 8px;
+    margin-bottom: 21px;
+    word-wrap: break-word;  
+  } 
