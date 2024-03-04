@@ -29,7 +29,7 @@
 <script>
   "use strict";
   const listCommentElement = document.getElementById('list-comment');
-  const buttonElement = document.getElementById('add-button');
+  const buttonAddComment = document.getElementById('add-button');
   const nameInputElement = document.getElementById('name-input');
   const textInputElement = document.getElementById('text-input');
   const deleteButtonElement = document.getElementById('delete-button');
@@ -44,22 +44,7 @@
     minute: 'numeric',
   };
 
-  const users = [
-    {
-      name: 'Глеб Фокин',
-      date: '12.02.22 12:18',
-      comment: 'Это будет первый комментарий на этой странице',
-      likes: 3,
-      isLiked: false,
-
-    }, {
-      name: 'Варвара Н.',
-      date: '13.02.22 19:22',
-      comment: 'Это будет второй комментарий на этой странице',
-      likes: 75,
-      isLiked: false,
-    }
-  ];
+  let users = [];
 
   function safeHTML(text) {
     return text
@@ -69,8 +54,8 @@
       .replaceAll('"', "&quot;")
   };
 
-  const renderUsers = () => {
-    const usersHtml = users.map((user, index) => {
+  const renderUsers = (userComments) => {
+    const usersHtml = userComments.map((user, index) => {
       let activeLike = "";
       let commentContent;
       let editButton;
@@ -114,10 +99,11 @@
   function addEventListeners() {
     document.querySelectorAll('.like-button').forEach(button => {
       button.addEventListener('click', function () {
-        const index = parseInt(this.dataset.index, 10);
-        users[index].isLiked = !users[index].isLiked;
-        users[index].likes += users[index].isLiked ? 1 : -1;
-        renderUsers();
+        // const index = parseInt(this.dataset.index, 10);
+        // users[index].isLiked = !users[index].isLiked;
+        // users[index].likes += users[index].isLiked ? 1 : -1;
+        // renderUsers();
+        console.log("Сервер пока что не поддерживает лайки. Приходите позже");
       });
     });
 
@@ -126,16 +112,15 @@
         const index = this.dataset.index;
         // users[index].isEdit = true;
         textInputElement.value = "QUOTE_BEGIN " + users[index].name + "\n" + users[index].comment + " QUOTE_END";
-
-        renderUsers();
       });
     });
 
     document.querySelectorAll('.edit-button').forEach(button => {
       button.addEventListener('click', function () {
-        const index = parseInt(this.dataset.index, 10);
-        users[index].isEdit = true;
-        renderUsers();
+        // const index = parseInt(this.dataset.index, 10);
+        // users[index].isEdit = true;
+        // renderUsers();
+        console.log("Сервер пока что не поддерживает редактирование комментариев. Приходите позже");
       });
     });
 
@@ -150,22 +135,43 @@
     });
     updateButtonState();
   }
-  renderUsers();
 
   function updateButtonState() {
     if (nameInputElement.value !== "" && textInputElement.value !== "") {
-      buttonElement.disabled = false;
-      buttonElement.classList.remove("button-error-grey");
+      buttonAddComment.disabled = false;
+      buttonAddComment.classList.remove("button-error-grey");
     } else {
-      buttonElement.disabled = true;
-      buttonElement.classList.add("button-error-grey");
+      buttonAddComment.disabled = true;
+      buttonAddComment.classList.add("button-error-grey");
     }
   }
 
   updateButtonState();
   nameInputElement.addEventListener("input", updateButtonState);
   textInputElement.addEventListener("input", updateButtonState);
-  renderUsers();
+
+  function getComments() {
+    fetch("https://wedev-api.sky.pro/api/v1/dz-hw/comments", {
+      method: "GET"
+    }).then((response) => {
+      response.json().then((responseData) => {
+        const usersComments = responseData.comments.map((comment) => {
+          const date = new Date(comment.date);
+          const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
+          return {
+            name: comment.author.name,
+            date: dateTime,
+            comment: comment.text,
+            likes: comment.likes,
+            isLiked: false,
+          }
+        });
+        users = usersComments;
+        renderUsers(usersComments);
+      })
+    });
+  }
+
 
   function addComment() {
     nameInputElement.value = nameInputElement.value.trim();
@@ -173,24 +179,28 @@
     if (nameInputElement.value === "" || textInputElement.value === "") {
       return;
     }
-    const date = new Date();
-    const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
+    // const date = new Date();
+    // const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
 
-    users.push({
-      name: safeHTML(nameInputElement.value),
-      comment: safeHTML(textInputElement.value),
-      date: dateTime,
-      likes: 0,
-      isLiked: false,
-    });
+    fetch("https://wedev-api.sky.pro/api/v1/dz-hw/comments", {
+      method: "POST",
+      body: JSON.stringify({
+        name: nameInputElement.value,
+        text: textInputElement.value
+      })
+    }).then(response => {
+      if (!response.ok) {
+        return response.json().then(error => console.log(error));
+      }
+      getComments();
+    })
 
     nameInputElement.value = "";
     textInputElement.value = "";
     updateButtonState();
-    renderUsers();
   }
 
-  buttonElement.addEventListener("click", addComment);
+  buttonAddComment.addEventListener("click", addComment);
   function handleEnterKeyPress(event) {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -200,13 +210,16 @@
   nameInputElement.addEventListener("keyup", handleEnterKeyPress);
   textInputElement.addEventListener("keyup", handleEnterKeyPress);
 
+  getComments();
+
   deleteButtonElement.addEventListener("click", (event) => {
     event.stopPropagation();
-    if (users.length > 0) {
-      users.pop();
-      renderUsers();
-    }
-    renderUsers();
+    // if (users.length > 0) {
+    //   users.pop();
+    //   renderUsers();
+    // }
+    // renderUsers();
+    console.log("Сервер пока что не поддерживает удаление комментариев. Приходите позже");
   });
 
 </script>
