@@ -9,6 +9,9 @@
 
 <body>
   <div class="container">
+    <div class="loading" id="loading-status">
+      Загрузка комментариев ...
+    </div>
     <ul class="comments" id="list-comment">
       <!-- Список рендерится из JS -->
     </ul>
@@ -22,6 +25,9 @@
       <div class="add-form-row">
         <button class="add-form-button" id="delete-button">Удалить последний комментарий</button>
       </div>
+    </div>
+    <div class="addComment" id="addComment-status">
+
     </div>
   </div>
 </body>
@@ -86,9 +92,9 @@
             <div class="comment-footer">
               <div class="likes">
                 <span class="likes-counter">${user.likes}</span>
-                <button class="like-button ${activeLike}" data-index="${index}"></button>
-                ${editButton}
-              </div>
+                <button class="like-button ${activeLike}" data-index="${index}"></button>` +
+        // ${editButton}
+        `</div>
             </div>
           </li>`;
     });
@@ -96,45 +102,72 @@
     addEventListeners();
   };
 
+  function delay(interval = 300) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, interval);
+    });
+  }
+
   function addEventListeners() {
     document.querySelectorAll('.like-button').forEach(button => {
       button.addEventListener('click', function () {
-        // const index = parseInt(this.dataset.index, 10);
-        // users[index].isLiked = !users[index].isLiked;
-        // users[index].likes += users[index].isLiked ? 1 : -1;
-        // renderUsers();
-        console.log("Сервер пока что не поддерживает лайки. Приходите позже");
-      });
-    });
-
-    document.querySelectorAll('.comment-text').forEach(div => {
-      div.addEventListener('click', function () {
-        const index = this.dataset.index;
-        // users[index].isEdit = true;
-        textInputElement.value = "QUOTE_BEGIN " + users[index].name + "\n" + users[index].comment + " QUOTE_END";
-      });
-    });
-
-    document.querySelectorAll('.edit-button').forEach(button => {
-      button.addEventListener('click', function () {
-        // const index = parseInt(this.dataset.index, 10);
-        // users[index].isEdit = true;
-        // renderUsers();
-        console.log("Сервер пока что не поддерживает редактирование комментариев. Приходите позже");
-      });
-    });
-
-    document.querySelectorAll('.save-button').forEach(button => {
-      button.addEventListener('click', function () {
         const index = parseInt(this.dataset.index, 10);
-        const newText = document.querySelector(`.edit-textarea[data-index="${index}"]`).value;
-        users[index].comment = safeHTML(newText);
-        users[index].isEdit = false;
-        renderUsers();
+        const comment = users[index];
+
+        if (comment.isLikeLoading) return;
+
+        comment.isLikeLoading = true;
+        this.classList.add('-loading-like'); // Добавляем анимацию
+
+        delay(2000).then(() => {
+          // Имитация изменения состояния лайка
+          comment.likes = comment.isLiked ? comment.likes - 1 : comment.likes + 1;
+          comment.isLiked = !comment.isLiked;
+          comment.isLikeLoading = false;
+          this.classList.remove('-loading-like');
+
+          renderUsers(users);
+        });
       });
     });
-    updateButtonState();
   }
+  // function addEventListeners() {
+  //   document.querySelectorAll('.like-button').forEach(button => {
+  //     button.addEventListener('click', function () {
+  //       // const index = parseInt(this.dataset.index, 10);
+  //       // users[index].isLiked = !users[index].isLiked;
+  //       // users[index].likes += users[index].isLiked ? 1 : -1;
+  //       // renderUsers();
+  //       alert("Сервер пока что не поддерживает лайки. Приходите позже");
+  //     });
+  //   });
+
+  document.querySelectorAll('.comment-text').forEach(div => {
+    div.addEventListener('click', function () {
+      const index = this.dataset.index;
+      // users[index].isEdit = true;
+      textInputElement.value = "QUOTE_BEGIN " + users[index].name + "\n" + users[index].comment + " QUOTE_END";
+    });
+  });
+
+  document.querySelectorAll('.edit-button').forEach(button => {
+    button.addEventListener('click', function () {
+      alert("Сервер пока что не поддерживает редактирование комментариев. Приходите позже");
+    });
+  });
+
+  document.querySelectorAll('.save-button').forEach(button => {
+    button.addEventListener('click', function () {
+      const index = parseInt(this.dataset.index, 10);
+      const newText = document.querySelector(`.edit-textarea[data-index="${index}"]`).value;
+      users[index].comment = safeHTML(newText);
+      users[index].isEdit = false;
+      renderUsers();
+    });
+  });
+  updateButtonState();
 
   function updateButtonState() {
     if (nameInputElement.value !== "" && textInputElement.value !== "") {
@@ -151,10 +184,11 @@
   textInputElement.addEventListener("input", updateButtonState);
 
   function getComments() {
-    fetch("https://wedev-api.sky.pro/api/v1/dz-hw/comments", {
+    fetch("https://wedev-api.sky.pro/api/v1/dz-hv/comments", {
       method: "GET"
-    }).then((response) => {
-      response.json().then((responseData) => {
+    })
+      .then((response) => response.json())
+      .then((responseData) => {
         const usersComments = responseData.comments.map((comment) => {
           const date = new Date(comment.date);
           const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
@@ -168,8 +202,12 @@
         });
         users = usersComments;
         renderUsers(usersComments);
+        document.getElementById('loading-status').textContent = "";
       })
-    });
+      .catch(error => {
+        console.error("Ошибка загрузки комментариев:", error);
+        document.getElementById('loading-status').textContent = "Ошибка загрузки комментариев.";
+      });
   }
 
 
@@ -181,23 +219,35 @@
     }
     // const date = new Date();
     // const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
+    document.getElementById('addComment-status').textContent = "Добавление комментария ...";
+    document.querySelector('.add-form').classList.add('hidden');
 
-    fetch("https://wedev-api.sky.pro/api/v1/dz-hw/comments", {
+    fetch("https://wedev-api.sky.pro/api/v1/dz-hv/comments", {
       method: "POST",
       body: JSON.stringify({
-        name: nameInputElement.value,
-        text: textInputElement.value
+        name: safeHTML(nameInputElement.value), // nameInputElement.value,
+        text: safeHTML(textInputElement.value), // textInputElement.value
       })
-    }).then(response => {
-      if (!response.ok) {
-        return response.json().then(error => console.log(error));
-      }
-      getComments();
     })
-
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Ошибка при добавлении комментария');
+        }
+        return response.json();
+      })
+      .then(() => {
+        getComments();
+      })
+      .catch(error => {
+        console.error("Ошибка при добавлении комментария:", error);
+      })
+      .finally(() => {
+        document.getElementById('addComment-status').textContent = "";
+        document.querySelector('.add-form').classList.remove('hidden');
+        updateButtonState();
+      });
     nameInputElement.value = "";
     textInputElement.value = "";
-    updateButtonState();
   }
 
   buttonAddComment.addEventListener("click", addComment);
@@ -210,8 +260,6 @@
   nameInputElement.addEventListener("keyup", handleEnterKeyPress);
   textInputElement.addEventListener("keyup", handleEnterKeyPress);
 
-  getComments();
-
   deleteButtonElement.addEventListener("click", (event) => {
     event.stopPropagation();
     // if (users.length > 0) {
@@ -219,8 +267,10 @@
     //   renderUsers();
     // }
     // renderUsers();
-    console.log("Сервер пока что не поддерживает удаление комментариев. Приходите позже");
+    alert("Сервер пока что не поддерживает удаление комментариев. Приходите позже");
   });
+
+  getComments();
 
 </script>
 
