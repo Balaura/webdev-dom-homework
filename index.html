@@ -170,7 +170,9 @@
   updateButtonState();
 
   function updateButtonState() {
-    if (nameInputElement.value !== "" && textInputElement.value !== "") {
+    const nameValue = nameInputElement.value.trim();
+    const textValue = textInputElement.value.trim();
+    if (nameValue !== "" && textValue !== "") {
       buttonAddComment.disabled = false;
       buttonAddComment.classList.remove("button-error-grey");
     } else {
@@ -187,7 +189,13 @@
     fetch("https://wedev-api.sky.pro/api/v1/dz-hv/comments", {
       method: "GET"
     })
-      .then((response) => response.json())
+      .then((response) => {
+        if (response.status !== 200) {
+          throw new Error('Ошибка загрузки комментариев: ' + response.statusText);
+
+        }
+        return response.json();
+      })
       .then((responseData) => {
         const usersComments = responseData.comments.map((comment) => {
           const date = new Date(comment.date);
@@ -211,12 +219,17 @@
   }
 
 
-  function addComment() {
+  function addComment(event, retryCount = 0) {
     nameInputElement.value = nameInputElement.value.trim();
     textInputElement.value = textInputElement.value.trim();
-    if (nameInputElement.value === "" || textInputElement.value === "") {
+    if (nameInputElement.value.length < 3 || textInputElement.value.length < 3) {
+      alert("Имя и комментарий должны быть не короче 3 символов");
       return;
     }
+    const maxRetries = 3; // Максимальное количество попыток
+    // if (nameInputElement.value === "" || textInputElement.value === "") {
+    //   return;
+    // }
     // const date = new Date();
     // const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
     document.getElementById('addComment-status').textContent = "Добавление комментария ...";
@@ -225,29 +238,43 @@
     fetch("https://wedev-api.sky.pro/api/v1/dz-hv/comments", {
       method: "POST",
       body: JSON.stringify({
-        name: safeHTML(nameInputElement.value), // nameInputElement.value,
-        text: safeHTML(textInputElement.value), // textInputElement.value
+        name: safeHTML(nameInputElement.value),
+        text: safeHTML(textInputElement.value),
+        forceError: true,
       })
     })
       .then(response => {
-        if (!response.ok) {
-          throw new Error('Ошибка при добавлении комментария');
+        if (response.status === 201) {
+          nameInputElement.value = "";
+          textInputElement.value = "";
+          return response.json();
+        } else if (response.status === 400) {
+          return response.json().then(error => {
+            throw new Error(error.error || 'Неверные данные в запросе');
+          });
+        } else if (response.status === 500) {
+          if (retryCount <= maxRetries) {
+            console.log(`Ошибка сервера. Повторная попытка ${retryCount + 1} из ${maxRetries}`);
+            return delay(1000).then(() => addComment(event, retryCount + 1)); // Повторяем запрос с задержкой
+          } else {
+            throw new Error('Сервер недоступен. Пожалуйста, попробуйте позже (500)');
+          }
+        } else {
+          throw new Error('Ошибка при добавлении комментария: ' + response.statusText);
         }
-        return response.json();
       })
       .then(() => {
         getComments();
       })
       .catch(error => {
-        console.error("Ошибка при добавлении комментария:", error);
+        console.error("Ошибка соединения. Сервер не отвечает или нет интернета", error);
+        alert("Сервер или тытэрнэт недоступен. Пожалуйста, попробуйте позже");
       })
       .finally(() => {
         document.getElementById('addComment-status').textContent = "";
         document.querySelector('.add-form').classList.remove('hidden');
         updateButtonState();
       });
-    nameInputElement.value = "";
-    textInputElement.value = "";
   }
 
   buttonAddComment.addEventListener("click", addComment);
