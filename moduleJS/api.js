@@ -1,23 +1,31 @@
 
 import { updateButtonState } from "./render.js";
-import { nameInputElement, textInputElement } from './main.js';
+import { nameInputElement, textInputElement } from './eventHandlers.js';
 import { safeHTML } from "./utils.js";
 import { renderUsers } from './render.js';
 import { delay } from './utils.js';
 import { users } from './main.js';
 import { getCommentsAndUpdate } from './main.js';
+import { token } from './loginPage.js';
 
-export function getComments() {
-  return fetch("https://wedev-api.sky.pro/api/v1/dz-hv/comments", {
-    method: "GET"
-  })
-    .then((response) => {
-      if (response.status !== 200) {
-        throw new Error('Ошибка загрузки комментариев: ' + response.statusText);
 
-      }
-      return response.json();
-    })
+const host = 'https://wedev-api.sky.pro/api/v2/dv-hz/comments';
+// let password = prompt('Введите ваш пароль?');
+
+export async function getComments() {
+  const response = await fetch(host, {
+    method: "GET",
+  });
+  if (response.status === 200) {
+    return response.json();
+  } else if (response.status === 401) {
+    password = prompt('Неверный пароль. Повторите попытку');
+    renderUsers();
+    throw new Error('Неверный пароль, нет авторизации');
+  }
+  else {
+    throw new Error('Ошибка загрузки комментариев: ' + response.statusText);
+  }
 }
 
 export function addComment(event, retryCount = 0) {
@@ -35,31 +43,37 @@ export function addComment(event, retryCount = 0) {
 
   getCommentsAndUpdate();
 
-  fetch("https://wedev-api.sky.pro/api/v1/dz-hv/comments", {
+  fetch(host, {
     method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({
       name: safeHTML(nameInputElement.value),
       text: safeHTML(textInputElement.value),
-      // forceError: true,
+
     })
   })
     .then(response => {
       if (response.status === 201) {
         alert("Комментарий успешно добавлен");
-        nameInputElement.value = "";
         textInputElement.value = "";
         renderUsers(users);
       } else if (response.status === 400) {
         throw new Error("Неверные данные в запросе");
       } else if (response.status === 500) {
         if (retryCount < maxRetries) {
-          console.log(`Ошибка сервера. Повторная попытка ${retryCount + 1} из ${maxRetries}`);
+          console.log(`Ошибка сервера.Повторная попытка ${retryCount + 1} из ${maxRetries} `);
           return delay(1000).then(() => addComment(event, retryCount + 1));
         } else {
           throw new Error('Сервер недоступен. Пожалуйста, попробуйте позже (500)');
         }
+      } else if (response.status === 401) {
+        password = prompt('Неверный пароль. Повторите попытку');
+        renderUsers();
+        throw new Error('Неверный пароль, нет авторизации');
       } else {
-        throw new Error(`Ошибка при добавлении комментария: ${response.statusText}`);
+        throw new Error(`Ошибка при добавлении комментария: ${response.statusText} `);
       }
     })
     .then(() => {

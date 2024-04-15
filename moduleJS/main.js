@@ -1,31 +1,33 @@
 import { getComments } from './api.js';
-import { renderUsers } from './render.js';
-import { setupEventListeners, addEventListeners } from './eventHandlers.js';
-export const nameInputElement = document.getElementById('name-input');
-export const textInputElement = document.getElementById('text-input');
+import { renderUsers, renderHome, renderLoginPage } from './render.js';
+import { format } from "date-fns";
 export let users = [];
+// renderLoginPage();
+// .then((status) => {
+//      if (status === 201) {
+//           renderHome();
+//      }
+// });
 
-setupEventListeners();
-// addEventListeners();
+renderHome();
 
-const deleteButtonElement = document.getElementById('delete-button');
-
-const options = {
-     year: '2-digit',
-     month: 'numeric',
-     day: 'numeric',
-};
-const optionsTime = {
-     hour: 'numeric',
-     minute: 'numeric',
-};
+// const options = {
+//      year: '2-digit',
+//      month: 'numeric',
+//      day: 'numeric',
+// };
+// const optionsTime = {
+//      hour: 'numeric',
+//      minute: 'numeric',
+// };
+// const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
 
 export function getCommentsAndUpdate() {
      getComments()
           .then((responseData) => {
                let usersComments = responseData.comments.map((comment) => {
                     const date = new Date(comment.date);
-                    const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
+                    const dateTime = format(date, "yyyy-MM-dd hh.mm.ss");;
                     return {
                          name: comment.author.name,
                          date: dateTime,
@@ -44,8 +46,4 @@ export function getCommentsAndUpdate() {
           });
 }
 
-deleteButtonElement.addEventListener("click", () => {
-     alert("Сервер пока что не поддерживает удаление комментариев. Приходите позже");
-});
-
-getCommentsAndUpdate();
+// getCommentsAndUpdate();

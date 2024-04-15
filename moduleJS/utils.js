@@ -13,6 +13,3 @@ export function delay(interval = 300) {
           }, interval);
      });
 }
-
-
-   
