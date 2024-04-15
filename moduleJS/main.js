@@ -1,6 +1,6 @@
 import { getComments } from './api.js';
 import { renderUsers, renderHome, renderLoginPage } from './render.js';
-
+import { format } from "date-fns";
 export let users = [];
 // renderLoginPage();
 // .then((status) => {
@@ -11,22 +11,23 @@ export let users = [];
 
 renderHome();
 
-const options = {
-     year: '2-digit',
-     month: 'numeric',
-     day: 'numeric',
-};
-const optionsTime = {
-     hour: 'numeric',
-     minute: 'numeric',
-};
+// const options = {
+//      year: '2-digit',
+//      month: 'numeric',
+//      day: 'numeric',
+// };
+// const optionsTime = {
+//      hour: 'numeric',
+//      minute: 'numeric',
+// };
+// const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
 
 export function getCommentsAndUpdate() {
      getComments()
           .then((responseData) => {
                let usersComments = responseData.comments.map((comment) => {
                     const date = new Date(comment.date);
-                    const dateTime = `${date.toLocaleDateString('ru-RU', options)} ${date.toLocaleTimeString('ru-RU', optionsTime)}`;
+                    const dateTime = format(date, "yyyy-MM-dd hh.mm.ss");;
                     return {
                          name: comment.author.name,
                          date: dateTime,
